@@ -5,9 +5,6 @@ import matplotlib.pyplot as plt
 
 class SIS:
 
-    station_loc = np.loadtxt('HA1-data/stations.txt', delimiter=',')
-    y = np.loadtxt('HA1-data/RSSI-measurements.txt', delimiter=',')
-
     mean_x = np.zeros(shape=6)
     cov_x = np.diag([500, 5, 5, 200, 5, 5])
 
@@ -30,9 +27,11 @@ class SIS:
     psi_z = np.array([[delta ** 2, delta, 0, 0, 0, 0], [0, 0, 0, delta ** 2, delta, 0]]).T
     psi_w = np.array([[delta ** 2, delta, 1, 0, 0, 0], [0, 0, 0, delta ** 2, delta, 1]]).T
 
-    def __init__(self, n, t=500, mean_x=mean_x, cov_x=cov_x, z_candidate=z_candidate):
+    def __init__(self, n, y, station_loc, t=500, mean_x=mean_x, cov_x=cov_x, z_candidate=z_candidate):
         self.n = int(n)
         self.t = int(t + 1)
+        self.y = y
+        self.station_loc = station_loc
         self.weight_history = np.zeros(shape=(self.n, self.t))
         self.tau = np.zeros(shape=(2, self.t))
 
@@ -60,27 +59,27 @@ class SIS:
 
     def next_z(self, prob_z=prob_z, z_candidate=z_candidate):
         for i in range(0, self.n):
-            self.move[i] = np.argmax(np.random.multinomial(1, prob_z[self.move][i]))
+            self.move[i] = np.argmax(np.random.multinomial(1, prob_z[self.move[i], ...]))
         self.z = z_candidate[..., self.move]
 
-    def weight(self, i, y=y, v=v, eta=eta, cov_v=cov_v):
+    def weight(self, i, v=v, eta=eta, cov_v=cov_v):
         pdf = np.zeros(self.n)
         dist = self.distance_2d()
         if i == 0:
             for j in range(0, self.n):
-                pdf[j] = multivariate_normal.pdf(y[:, i], mean=v - 10 * eta * np.log10(dist[..., j]), cov=cov_v)
+                pdf[j] = multivariate_normal.pdf(self.y[:, i], mean=v - 10 * eta * np.log10(dist[..., j]), cov=cov_v)
         else:
             for j in range(0, self.n):
-                pdf[j] = self.w[j] * multivariate_normal.pdf(y[:, i],
+                pdf[j] = self.w[j] * multivariate_normal.pdf(self.y[:, i],
                                                  mean=v - 10 * eta * np.log10(dist[..., j]),
                                                  cov=cov_v)
         return pdf
 
-    def distance_2d(self, y=station_loc):
+    def distance_2d(self):
         x_2d = self.x[[0, 3], ...]
         dist = np.zeros(shape=(6, self.n))
         for i in range(0, self.n):
-            dist[..., i] = np.sqrt(np.sum((y.T - x_2d[..., i])**2, axis=1))
+            dist[..., i] = np.sqrt(np.sum((self.station_loc.T - x_2d[..., i])**2, axis=1))
         return dist
 
     def important_weight(self):
@@ -104,9 +103,9 @@ class SIS:
                 ess[i] = 0
         return ess
 
-    def plot(self, station_loc=station_loc):
+    def plot(self):
         plt.figure(1)
-        plt.plot(station_loc[0, ...], station_loc[1, ...], 'o', label="station location")
+        plt.plot(self.station_loc[0, ...], self.station_loc[1, ...], 'o', label="station location")
         plt.plot(self.tau[0, ...], self.tau[1, :], '*', label="x tracking")
         plt.legend()
         plt.title("expected x-trajectory")
@@ -123,31 +122,6 @@ class SIS:
 
 
 class SISR(SIS):
-
-    station_loc = np.loadtxt('HA1-data/stations.txt', delimiter=',')
-    y = np.loadtxt('HA1-data/RSSI-measurements.txt', delimiter=',')
-
-    mean_x = np.zeros(shape=6)
-    cov_x = np.diag([500, 5, 5, 200, 5, 5])
-
-    prob_z = np.array([[16, 1, 1, 1, 1], [1, 16, 1, 1, 1], [1, 1, 16, 1, 1], [1, 1, 1, 16, 1], [1, 1, 1, 1, 16]]) / 20
-    z_candidate = np.array([[0, 0], [3.5, 0], [0, 3.5], [0, -3.5], [-3.5, 0]]).T
-
-    mean_w = np.zeros(shape=2)
-    sigma_w = 0.5
-    cov_w = sigma_w ** 2 * np.diag([1, 1])
-
-    v = 90
-    eta = 3
-    zeta = 1.5
-    cov_v = zeta ** 2 * np.diag([1, 1, 1, 1, 1, 1])
-
-    delta = 0.5
-    alpha = 0.6
-    phi = np.array([[1, 0, 0, 0, 0, 0], [delta, 1, 0, 0, 0, 0], [delta ** 2, delta, alpha, 0, 0, 0],
-                    [0, 0, 0, 1, 0, 0], [0, 0, 0, delta, 1, 0], [0, 0, 0, delta ** 2, delta, alpha]]).T
-    psi_z = np.array([[delta ** 2, delta, 0, 0, 0, 0], [0, 0, 0, delta ** 2, delta, 0]]).T
-    psi_w = np.array([[delta ** 2, delta, 1, 0, 0, 0], [0, 0, 0, delta ** 2, delta, 1]]).T
 
     def start_explore(self):
         for i in range(1, self.t):
@@ -171,9 +145,10 @@ class SISR(SIS):
         for i in range(0, self.n):
             self.z[..., i] = self.z[..., np.argmax(np.random.multinomial(1, self.w))]
 
-    def weight(self, i, y=y, v=v, eta=eta, cov_v=cov_v):
+    def weight(self, i):
         pdf = np.zeros(self.n)
         dist = self.distance_2d()
         for j in range(0, self.n):
-            pdf[j] = multivariate_normal.pdf(y[:, i], mean=v - 10 * eta * np.log10(dist[..., j]), cov=cov_v)
+            pdf[j] = multivariate_normal.pdf(self.y[:, i],
+                                             mean=self.v - 10 * self.eta * np.log10(dist[..., j]), cov=self.cov_v)
         return pdf
