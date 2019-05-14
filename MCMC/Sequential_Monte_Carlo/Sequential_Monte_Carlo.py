@@ -122,10 +122,12 @@ class SIS(object):
                 ess[i] = 0
         return ess
 
-    def plot(self):
+    def plot(self, target):
         plt.figure(1)
         plt.plot(self.station_loc[0, ...], self.station_loc[1, ...], 'o', label="station location")
         plt.plot(self.tau[0, ...], self.tau[1, :], '*', label="x tracking")
+        if target.any() != None:
+            plt.plot(target[0], target[3], '*', label="target track")
         plt.legend()
         plt.title("expected x-trajectory")
 
