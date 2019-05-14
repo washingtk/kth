@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
+from numba import jit
 
 
 class SIS:
@@ -10,17 +11,18 @@ class SIS:
     mean_x = np.zeros(shape=6)
     cov_x = np.diag([500, 5, 5, 200, 5, 5])
 
-    prob_z = np.array([[16, 1, 1, 1, 1], [1, 16, 1, 1, 1], [1, 1, 16, 1, 1], [1, 1, 1, 16, 1], [1, 1, 1, 1, 16]]) / 20
+    prob_z = np.array([[16, 1, 1, 1, 1], [1, 16, 1, 1, 1], [1, 1, 16, 1, 1], [1, 1, 1, 16, 1], [1, 1, 1, 1, 16]],
+                      dtype=float) / 20
     z_candidate = np.array([[0, 0], [3.5, 0], [0, 3.5], [0, -3.5], [-3.5, 0]]).T
 
     mean_w = np.zeros(shape=2)
     sigma_w = 0.5
-    cov_w = sigma_w ** 2 * np.diag([1, 1])
+    cov_w = sigma_w ** 2 * np.diag([1., 1.])
 
     v = 90
     eta = 3
     zeta = 1.5
-    cov_v = zeta ** 2 * np.diag([1, 1, 1, 1, 1, 1])
+    cov_v = zeta ** 2 * np.diag([1., 1., 1., 1., 1., 1.])
 
     delta = 0.5
     alpha = 0.6
@@ -38,9 +40,10 @@ class SIS:
         self.tau = np.zeros(shape=(2, self.t))
 
         self.x = np.random.multivariate_normal(mean=mean_x, cov=cov_x, size=self.n).T
-        self.move = np.random.randint(0, z_candidate.shape[1]-1, self.n)
+        self.num_z_cand = z_candidate.shape[1] - 1
+        self.move = np.random.randint(0, self.num_z_cand, self.n)
         self.z = z_candidate[..., self.move]
-        self.w = self.weight(i=0)
+        self.w = self.weight_0(i=0)
         self.weight_history[..., 0] = self.w
         self.tau[..., 0] = np.sum(self.x[[0, 3], ...] * self.w, axis=1) / sum(self.w)
 
@@ -60,21 +63,26 @@ class SIS:
         self.x = phi@self.x + psi_z@self.z + psi_w@w
 
     def next_z(self, prob_z=prob_z, z_candidate=z_candidate):
-        for i in range(0, self.n):
+        for i in range(self.n):
             self.move[i] = np.argmax(np.random.multinomial(1, prob_z[self.move[i], ...]))
         self.z = z_candidate[..., self.move]
+
+    def weight_0(self, i, v=v, eta=eta, cov_v=cov_v):
+        pdf = np.zeros(self.n)
+        dist = self.distance_2d()
+        for j in range(0, self.n):
+            pdf[j] = multivariate_normal.pdf(self.y[:, i],
+                                             mean=v - 10 * eta * np.log10(dist[..., j]),
+                                             cov=cov_v)
+        return pdf
 
     def weight(self, i, v=v, eta=eta, cov_v=cov_v):
         pdf = np.zeros(self.n)
         dist = self.distance_2d()
-        if i == 0:
-            for j in range(0, self.n):
-                pdf[j] = multivariate_normal.pdf(self.y[:, i], mean=v - 10 * eta * np.log10(dist[..., j]), cov=cov_v)
-        else:
-            for j in range(0, self.n):
-                pdf[j] = self.w[j] * multivariate_normal.pdf(self.y[:, i],
-                                                 mean=v - 10 * eta * np.log10(dist[..., j]),
-                                                 cov=cov_v)
+        for j in range(0, self.n):
+            pdf[j] = self.w[j] * multivariate_normal.pdf(self.y[:, i],
+                                             mean=v - 10 * eta * np.log10(dist[..., j]),
+                                             cov=cov_v)
         return pdf
 
     def distance_2d(self):
@@ -90,7 +98,7 @@ class SIS:
             if sum(self.weight_history[..., i]) != 0:
                 iw[..., i] = self.weight_history[..., i] / sum(self.weight_history[..., i])
             else:
-                break
+                pass
         return iw
 
     def efficient_size(self):
@@ -127,19 +135,23 @@ class SISR(SIS):
 
     # FIXME : something might be wrong
 
+    def init_r(self):
+        self.resample_x()
+        self.resample_z()
+
     def start_explore(self):
         for i in range(1, self.t):
-            self.resample_x()
-            self.resample_z()
             self.next_x()
             self.next_z()
-            self.w = self.weight(i=i)
+            self.w = self.weight_0(i=i)
             self.weight_history[..., i] = self.w
             if sum(self.w) != 0:
                 self.tau[..., i] = np.sum(self.x[[0, 3], ...] * self.w, axis=1) / sum(self.w)
             else:
                 pass
 
+            self.resample_x()
+            self.resample_z()
 
     def resample_x(self):
         for i in range(0, self.n):
@@ -148,11 +160,3 @@ class SISR(SIS):
     def resample_z(self):
         for i in range(0, self.n):
             self.z[..., i] = self.z[..., np.argmax(np.random.multinomial(1, self.w))]
-
-    def weight(self, i):
-        pdf = np.zeros(self.n)
-        dist = self.distance_2d()
-        for j in range(0, self.n):
-            pdf[j] = multivariate_normal.pdf(self.y[:, i],
-                                             mean=self.v - 10 * self.eta * np.log10(dist[..., j]), cov=self.cov_v)
-        return pdf
