@@ -20,7 +20,7 @@ track.plot()
 
 # SISR
 # track_with_resample = smc.SISR(n=1e3, y=y, station_loc=station_loc)
-# track_with_resample.init_r()
+# track_with_resample.init_resample()
 # track_with_resample.start_explore()
 # track_with_resample.plot()
 

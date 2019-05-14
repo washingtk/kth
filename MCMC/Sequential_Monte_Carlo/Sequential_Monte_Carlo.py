@@ -1,10 +1,19 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
-from numba import jit
+# from numba import jitclass, int8, float32, float64
 
+# spec = [
+#     ('y', float32[:]), ('station_loc', float32[:]), ('weight_history', float64[:]), ('tau', float32[:]),
+#     ('x', float32[:]), ('num_z_cand', int8[:]), ('move', int8[:]), ('z', float32[:]), ('w', float64[:]),
+#     ('mean_x', float32[:]), ('cov_x', float32[:]), ('prob_z', float32[:]), ('z_candidate', float32[:]),
+#     ('mean_w', float32[:]), ('sigma_w', float32[:]), ('cov_w', float32[:]), ('v', float32),
+#     ('eta', float32), ('zeta', float32), ('cov_v', float32), ('delta', float32), ('alpha', float32),
+#     ('phi', float32[:]), ('psi_z', float32[:]), ('psi_w', float32[:])
+# ]
 
-class SIS:
+# @jitclass(spec)
+class SIS(object):
 
     # TODO : pypy/cython/numba Optimizing!
 
@@ -36,7 +45,7 @@ class SIS:
         self.t = int(t + 1)
         self.y = y
         self.station_loc = station_loc
-        self.weight_history = np.zeros(shape=(self.n, self.t))
+        self.weight_history = np.zeros(shape=(self.n, self.t), dtype=float)
         self.tau = np.zeros(shape=(2, self.t))
 
         self.x = np.random.multivariate_normal(mean=mean_x, cov=cov_x, size=self.n).T
@@ -133,11 +142,8 @@ class SIS:
 
 class SISR(SIS):
 
-    # FIXME : something might be wrong
-
-    def init_r(self):
-        self.resample_x()
-        self.resample_z()
+    def init_resample(self):
+        self.resample()
 
     def start_explore(self):
         for i in range(1, self.t):
@@ -149,14 +155,11 @@ class SISR(SIS):
                 self.tau[..., i] = np.sum(self.x[[0, 3], ...] * self.w, axis=1) / sum(self.w)
             else:
                 pass
+            self.resample()
 
-            self.resample_x()
-            self.resample_z()
-
-    def resample_x(self):
-        for i in range(0, self.n):
-            self.x[..., i] = self.x[..., np.argmax(np.random.multinomial(1, self.w))]
-
-    def resample_z(self):
-        for i in range(0, self.n):
-            self.z[..., i] = self.z[..., np.argmax(np.random.multinomial(1, self.w))]
+    def resample(self):
+        resample = np.zeros(self.n, dtype='int')
+        for i in range(self.n):
+            resample[i] = np.argmax(np.random.multinomial(1, self.w))
+        self.x = self.x[..., resample]
+        self.z = self.z[..., resample]
