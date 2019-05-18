@@ -3,17 +3,8 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 # from numba import jitclass, int8, float32, float64
 
-# spec = [
-#     ('y', float32[:]), ('station_loc', float32[:]), ('weight_history', float64[:]), ('tau', float32[:]),
-#     ('x', float32[:]), ('num_z_cand', int8[:]), ('move', int8[:]), ('z', float32[:]), ('w', float64[:]),
-#     ('mean_x', float32[:]), ('cov_x', float32[:]), ('prob_z', float32[:]), ('z_candidate', float32[:]),
-#     ('mean_w', float32[:]), ('sigma_w', float32[:]), ('cov_w', float32[:]), ('v', float32),
-#     ('eta', float32), ('zeta', float32), ('cov_v', float32), ('delta', float32), ('alpha', float32),
-#     ('phi', float32[:]), ('psi_z', float32[:]), ('psi_w', float32[:])
-# ]
 
-# @jitclass(spec)
-class SIS(object):
+class SIS:
 
     # TODO : pypy/cython/numba Optimizing!
 
@@ -79,7 +70,7 @@ class SIS(object):
     def weight_0(self, i, v=v, eta=eta, cov_v=cov_v):
         pdf = np.zeros(self.n)
         dist = self.distance_2d()
-        for j in range(0, self.n):
+        for j in range(self.n):
             pdf[j] = multivariate_normal.pdf(self.y[:, i],
                                              mean=v - 10 * eta * np.log10(dist[..., j]),
                                              cov=cov_v)
@@ -88,7 +79,7 @@ class SIS(object):
     def weight(self, i, v=v, eta=eta, cov_v=cov_v):
         pdf = np.zeros(self.n)
         dist = self.distance_2d()
-        for j in range(0, self.n):
+        for j in range(self.n):
             pdf[j] = self.w[j] * multivariate_normal.pdf(self.y[:, i],
                                              mean=v - 10 * eta * np.log10(dist[..., j]),
                                              cov=cov_v)
@@ -97,13 +88,13 @@ class SIS(object):
     def distance_2d(self):
         x_2d = self.x[[0, 3], ...]
         dist = np.zeros(shape=(6, self.n))
-        for i in range(0, self.n):
+        for i in range(self.n):
             dist[..., i] = np.sqrt(np.sum((self.station_loc.T - x_2d[..., i])**2, axis=1))
         return dist
 
     def important_weight(self):
         iw = np.zeros_like(self.weight_history)
-        for i in range(0, self.t):
+        for i in range(self.t):
             if sum(self.weight_history[..., i]) != 0:
                 iw[..., i] = self.weight_history[..., i] / sum(self.weight_history[..., i])
             else:
@@ -114,7 +105,7 @@ class SIS(object):
         iw = self.important_weight()
         cv_square = np.zeros(self.t)
         ess = np.zeros(self.t)
-        for i in range(0, self.t):
+        for i in range(self.t):
             cv_square[i] = np.sum((self.n * iw[..., i] - 1)**2, axis=0) / self.n
             if cv_square[i] != 1:
                 ess[i] = self.n / (1 + cv_square[i])
@@ -165,3 +156,13 @@ class SISR(SIS):
             resample[i] = np.argmax(np.random.multinomial(1, self.w))
         self.x = self.x[..., resample]
         self.z = self.z[..., resample]
+
+
+# spec = [
+#     ('y', float32[:]), ('station_loc', float32[:]), ('weight_history', float64[:]), ('tau', float32[:]),
+#     ('x', float32[:]), ('num_z_cand', int8[:]), ('move', int8[:]), ('z', float32[:]), ('w', float64[:]),
+#     ('mean_x', float32[:]), ('cov_x', float32[:]), ('prob_z', float32[:]), ('z_candidate', float32[:]),
+#     ('mean_w', float32[:]), ('sigma_w', float32[:]), ('cov_w', float32[:]), ('v', float32),
+#     ('eta', float32), ('zeta', float32), ('cov_v', float32), ('delta', float32), ('alpha', float32),
+#     ('phi', float32[:]), ('psi_z', float32[:]), ('psi_w', float32[:])
+# ]
