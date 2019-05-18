@@ -51,13 +51,14 @@ class Sampling:
         return float(candidate)
 
     def metropolis_hastings(self, i, j, candidate, coal_mine=coal_mine):
-        t1_cand = self.t[j + 1, i] - candidate
-        t2_cand = candidate - self.t[j - 1, i + 1]
-        if t1_cand * t2_cand > 0:
+        num_d1_cand = np.sum((coal_mine > candidate) & (self.t[j + 1, i] > coal_mine))
+        num_d2_cand = np.sum((coal_mine > self.t[j - 1, i + 1]) & (candidate > coal_mine))
+        if num_d2_cand * num_d2_cand > 0:
             t1 = self.t[j + 1, i] - self.t[j, i]
             t2 = self.t[j, i] - self.t[j - 1, i + 1]
-            num_d1_cand = np.sum((coal_mine > candidate) & (self.t[j+1, i] > coal_mine))
-            num_d2_cand = np.sum((coal_mine > self.t[j-1, i+1]) & (candidate > coal_mine))
+            t1_cand = self.t[j + 1, i] - candidate
+            t2_cand = candidate - self.t[j - 1, i + 1]
+
             num_d1 = np.sum((coal_mine > self.t[j, i]) & (self.t[j + 1, i] > coal_mine))
             num_d2 = np.sum((coal_mine > self.t[j - 1, i + 1]) & (self.t[j, i] > coal_mine))
 
