@@ -5,10 +5,10 @@ Gaussian_Process/random_search.py
 Gaussian_Process/gpr.py
 Gaussian_Process/optimized_solution.py
 Gaussian_Process/te.py
-MCMC/Sequential_Monte_Carlo/__pycache__
+MCMC/Sequential_Monte_Carlo/__pycache__/*
 MCMC/Sequential_Monte_Carlo/sis.ipynb
 MCMC/Sequential_Monte_Carlo/temporary.py
 MCMC/Sequential_Monte_Carlo/temporary2.py
-MCMC/Sequential_Monte_Carlo/__pycache__
+MCMC/Sequential_Monte_Carlo/__pycache__/*
 MCMC/mix_sampler/test.ipynb
 
