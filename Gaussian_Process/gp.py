@@ -1,19 +1,18 @@
-"""
-=====================================================
-Gaussian process classification (GPC)
-=====================================================
-
-"""
-
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF, DotProduct
 from sklearn.gaussian_process.kernels import DotProduct
 from itertools import product
-# import some data to play with
+
+
+"""
+
+Use Gaussian Process classification to distinguish a MNIST data and
+compare a result with two kernel and different test size
+
+"""
 
 
 class GP:
@@ -22,7 +21,6 @@ class GP:
         self.test_size = test_size
         self.kernel = kernel
         self.x_train, self.x_test, self.y_train, self.y_test = self.set_size()
-
 
     def set_size(self):
         digits = datasets.load_digits()
@@ -34,7 +32,6 @@ class GP:
         return _x_train, _x_test, _y_train, _y_test
 
     def error_rate(self):
-        gpc = ()
         if self.kernel == "RBF":
             gpc = GaussianProcessClassifier(kernel=1.0 * RBF([1.0])).fit(self.x_train, self.y_train)
         elif self.kernel == "DP":
@@ -47,6 +44,7 @@ class GP:
         test_error_rate = np.mean(np.not_equal(yp_test, self.y_test))
 
         return train_error_rate, test_error_rate
+
 
 test = [10, 20, 40, 70, 120]
 kernel = ["RBF", "DP"]
