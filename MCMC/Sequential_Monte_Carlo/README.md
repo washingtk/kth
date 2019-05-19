@@ -18,3 +18,13 @@ where i is a index of one sample and n is an arbitrary time step.
 Second, to overcome its particle degeneracy, SIS with Resampling is introduced. Every steps the samples are resampled from themselves according to important weights. Then, the algorithm is 
 
 <img src="https://latex.codecogs.com/gif.latex?\omega_{n&plus;1}^i&space;=&space;\frac{z_{n&plus;1}(X_{0:n&plus;1})}{g_{n&plus;1}(X_{0:n&plus;1})}&space;=&space;P&space;\\&space;\tau[x_n|Y]&space;=&space;\sum_{i}&space;\frac{\omega_n^i}{\Omega}x_n^i"/>
+
+The result:
+![sis](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SIS_track.png)
+![sisr](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SISR_track.png)
+![sisess](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SIS_ess.png)
+![sisr](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SISR_ess.png)
+
+![sis](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SIS_track.png)
+![sis](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/SIS_track.png)
+
