@@ -12,6 +12,8 @@ a few more assumptions with this yields a conditional probability
 
 applying Gibbs sampler to the first two and Matropolis Hastings sampler to the last.
 
+result(matlab):
+![breakpoints](https://github.com/washingtk/kth/blob/pictures/mcmc_pic/breakpoint4.png)
 
 TODO:
 numpy RUNTIMEWARING:encounter double scalar
